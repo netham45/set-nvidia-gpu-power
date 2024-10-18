@@ -43,8 +43,14 @@ function Create-ScheduledTask {
 
     $action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument "-ExecutionPolicy Bypass -File `"$env:LOCALAPPDATA\SetNvidiaGPUPower\set-nvidia-gpu-power.ps1`" -Percentage $Percentage"
     $trigger = New-ScheduledTaskTrigger -AtLogOn
-    $principal = New-ScheduledTaskPrincipal -UserId (Get-CimInstance -ClassName Win32_ComputerSystem | Select-Object -ExpandProperty UserName) -RunLevel Highest
+    $principal = New-ScheduledTaskPrincipal -UserID "SYSTEM" -LogonType ServiceAccount -RunLevel Highest
     $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable
+
+    $taskExists = Get-ScheduledTask -TaskName "SetNvidiaGPUPower" -ErrorAction SilentlyContinue
+
+    if ($taskExists) {
+        Unregister-ScheduledTask -TaskName "SetNvidiaGPUPower" -Confirm:$false
+    }
 
     Register-ScheduledTask -TaskName "SetNvidiaGPUPower" -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Force | Out-Null
 }
